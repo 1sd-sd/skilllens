@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: py${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 自测（无第三方依赖）
+        run: python -m unittest discover -s tests -v
+
+      - name: 示例包回归（分数必须符合预期）
+        shell: bash
+        run: |
+          python -m skilllens check examples --out reports --quiet
+          python - <<'PY'
+          import json, pathlib, sys
+          expect = {"csv-insight": ("A", 90), "draft-skill": ("D", 60), "my-skill": ("D", 60)}
+          bad = []
+          for name, (grade, floor) in expect.items():
+              data = json.loads(pathlib.Path(f"reports/{name}.json").read_text(encoding="utf-8"))
+              if data["grade"] != grade:
+                  bad.append(f"{name}: 期望 {grade} 级，实际 {data['grade']} 级")
+          if bad:
+              print("\n".join(bad)); sys.exit(1)
+          print("示例包等级符合预期")
+          PY
+
+      - name: CLI 退出码契约
+        shell: bash
+        run: |
+          python -m skilllens check examples/csv-insight --quiet && echo "A 级返回 0 ✓"
+          if python -m skilllens check examples/draft-skill --quiet; then
+            echo "D 级不应返回 0"; exit 1
+          else
+            echo "D 级返回非 0 ✓"
+          fi
