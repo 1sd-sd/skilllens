@@ -8,11 +8,11 @@ python -m skilllens check examples/csv-insight
 ```
 
 ```
-== csv-insight  →  90/100  A 级  PASS
+== csv-insight  →  100/100  A 级  PASS
    触发力   25/25   100%
    结构    20/20   100%
-   可执行   25/30    83%
-   可维护   20/25    80%
+   可执行   30/30   100%
+   可维护   25/25   100%
 ```
 
 ---
@@ -88,7 +88,7 @@ description: >
 输出：
 
 ```
-== csv-insight  →  90/100  A 级  PASS
+== csv-insight  →  100/100  A 级  PASS
 ```
 
 再换成草稿态的包：
@@ -100,6 +100,16 @@ description: >
 ```
 
 ---
+
+### 真实包的体检结果（不是只有自己的 fixture 能过）
+
+| 包 | 分数 | 等级 | 主要问题 |
+|---|---|---|---|
+| `skill-explainer`（C4 真实提交） | 83 | B | 缺 Output 段、缺 When 段 |
+| `wechat-doc-mapper`（C4 真实提交） | 82 | B | 缺 Input 段 |
+| `challenge-submission-checker`（作者自用技能） | 60 | C | description 1046 字符超上限；正文残留 TODO |
+
+> 最后一个分数说明一件事：**通过"人眼评审"的技能，未必能通过"结构化体检"。**
 
 ## 项目结构
 

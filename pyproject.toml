@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skilllens"
-version = "1.1.0"
+version = "1.1.1"
 description = "技能包体检器：给任何 .skill 打一个 0-100 分，并指出下一条该改什么"
 readme = "README.md"
 requires-python = ">=3.9"

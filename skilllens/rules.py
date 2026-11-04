@@ -58,16 +58,37 @@ class Rule:
     fn: callable
 
 
+def _mask_fences(body: str) -> list[str]:
+    """把代码块内部的行替换成占位，避免把代码里的 '## xxx' 当成标题。
+
+    保留 ``` 标记行本身——它们是"有代码块"的证据。
+    """
+    out, inside = [], False
+    for line in body.splitlines():
+        if line.strip().startswith("```"):
+            inside = not inside
+            out.append(line)
+            continue
+        out.append("…" if inside else line)
+    return out
+
+
 def _headings(body: str) -> list[str]:
-    return [m.group(1).strip().lower() for m in re.finditer(r"^#{1,6}\s+(.+)$", body, re.MULTILINE)]
+    masked = "\n".join(_mask_fences(body))
+    return [m.group(1).strip().lower() for m in re.finditer(r"^#{1,6}\s+(.+)$", masked, re.MULTILINE)]
 
 
 def _section_text(body: str, keywords: tuple[str, ...]) -> str:
-    """取出标题含 keyword 的那一节正文（到下一个同级或更高级标题为止）。"""
-    lines = body.splitlines()
+    """取出标题含 keyword 的那一节正文（到下一个同级或更高级标题为止）。
+
+    边界判定在"代码块已屏蔽"的版本上做，取回的却是原文——这样 Output 段里
+    的示例代码不会被误当成结构标题，也不会丢内容。
+    """
+    raw_lines = body.splitlines()
+    masked_lines = _mask_fences(body)
     out, capturing, level = [], False, 0
-    for line in lines:
-        m = re.match(r"^(#{1,6})\s+(.+)$", line)
+    for raw, masked in zip(raw_lines, masked_lines):
+        m = re.match(r"^(#{1,6})\s+(.+)$", masked)
         if m:
             depth, title = len(m.group(1)), m.group(2).lower()
             if capturing and depth <= level:
@@ -76,7 +97,7 @@ def _section_text(body: str, keywords: tuple[str, ...]) -> str:
                 capturing, level = True, depth
                 continue
         if capturing:
-            out.append(line)
+            out.append(raw)
     return "\n".join(out).strip()
 
 
@@ -147,7 +168,7 @@ def _c_desc_len(pkg: Package):
 
 def _c_desc_trigger(pkg: Package):
     desc = str(pkg.frontmatter.get("description", "")).lower()
-    cues = ["use when", "whenever", "use it when", "触发", "当你", "当你需要", "如果用户", "ask for", "say "]
+    cues = ["use when", "whenever", "use it when", "触发", "当你", "当你需要", "如果用户", "ask for", "say ", "适用于", "适合", "用于"]
     hits = [c for c in cues if c in desc]
     quotes = len(re.findall(r"[\"'“「]", desc))
     if hits and quotes >= 4:
